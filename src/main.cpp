@@ -15,6 +15,12 @@
 #include <iomanip>
 #include <sstream>
 
+enum class measurement_type {
+    temperature = 1,
+    humidity = 2,
+    ambient_light = 3,
+};
+
 
 void parse_data(const char* buffer, std::int32_t& temperature, std::int32_t& humidity) {
     
@@ -33,49 +39,40 @@ std::string get_current_timestamp() {
     return ss.str();
 }
 
-std::string get_json_rpc_temperature(std::int32_t temperature) {
+std::string get_json_rpc(std::int32_t node_id, measurement_type type, std::int32_t value) {
     nlohmann::json j;
     nlohmann::json data = nlohmann::json::array();
 
-    data.push_back({
-        {"time", get_current_timestamp()},
-        {"temperature", temperature},
-        {"quality", 100} // TODO resit nejak kvalitu?
-    });
+    if (type == measurement_type::temperature)
+        data.push_back({
+            {"time", get_current_timestamp()},
+            {"temperature", value},
+            {"quality", 100}
+        });
+    else if (type == measurement_type::humidity)
+        data.push_back({
+            {"time", get_current_timestamp()},
+            {"humidity", value},
+            {"quality", 100}
+        });
+    else if (type == measurement_type::ambient_light)
+        data.push_back({
+            {"time", get_current_timestamp()},
+            {"ambient light", value},
+            {"quality", 100}
+        });
+    else return nullptr;
 
     j["jsonrpc"] = "2.0";
     j["id"] = "1";
     j["method"] = "insertData";
-    j["params"]["apiKey"] = "JUJIQNFVRHGVMNHYCYRZ6HBO4"; // TODO jakej spravne API key?
-    j["params"]["secretKey"] = "B0AMCI2YWT1H83X8I3H7U1O5H"; // TODO dtto secret key?
-    j["params"]["objectTableId"] = 1; // TODO nastavovat podle odkud data prijdou, zatim testovaci pole
-    j["params"]["objectId"] = 16; // TODO dtto
+    j["params"]["apiKey"] = "JUJIQNFVRHGVMNHYCYRZ6HBO4";
+    j["params"]["secretKey"] = "B0AMCI2YWT1H83X8I3H7U1O5H";
+    j["params"]["objectTableId"] = 1;
+    j["params"]["objectId"] = (((node_id - 1) * 3) + static_cast<int>(type));
     j["params"]["ignoreDuplicit"] = true;
     j["params"]["data"] = data;
 
-    return j.dump();
-}
-
-std::string get_json_rpc_humidity(std::int32_t humidity) {
-    nlohmann::json j;
-    nlohmann::json data = nlohmann::json::array();
-
-    data.push_back({
-        {"time", get_current_timestamp()},
-        {"humidity", humidity},
-        {"quality", 100} // TODO resit nejak kvalitu?
-    });
-
-    j["jsonrpc"] = "2.0";
-    j["id"] = "1";
-    j["method"] = "insertData";
-    j["params"]["apiKey"] = "JUJIQNFVRHGVMNHYCYRZ6HBO4"; // TODO jakej spravne API key?
-    j["params"]["secretKey"] = "B0AMCI2YWT1H83X8I3H7U1O5H"; // TODO dtto secret key?
-    j["params"]["objectTableId"] = 1; // TODO nastavovat podle odkud data prijdou, zatim testovaci pole
-    j["params"]["objectId"] = 17; // TODO dtto
-    j["params"]["ignoreDuplicit"] = true;
-    j["params"]["data"] = data;
-    
     return j.dump();
 }
 
@@ -124,8 +121,8 @@ int main() {
         std::int32_t temperature;
         std::int32_t humidity;
         parse_data(buffer, temperature, humidity);
-        std::string temperature_req = get_json_rpc_temperature(temperature);
-        std::string humidity_req = get_json_rpc_humidity(humidity);
+        std::string temperature_req = get_json_rpc(6, measurement_type::temperature, temperature); // TODO nahradit node_id
+        std::string humidity_req = get_json_rpc(6, measurement_type::humidity, humidity); // TODO nahradit node_id
 
         std::cout << "Posting..." << std::endl;
         post_request(temperature_req);
