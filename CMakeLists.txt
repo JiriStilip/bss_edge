@@ -10,8 +10,10 @@ FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
 FetchContent_MakeAvailable(cpr)
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
-FetchContent_MakeAvailable(json)
+FetchContent_MakeAvailable(json)   
 
-ADD_EXECUTABLE(bss_edge src/main.cpp)
+ADD_EXECUTABLE(bss_edge src/main.cpp src/bss.pb.cc)
 
-target_link_libraries(bss_edge PRIVATE cpr::cpr nlohmann_json::nlohmann_json)
+find_package(Protobuf REQUIRED)
+
+target_link_libraries(bss_edge PRIVATE cpr::cpr nlohmann_json::nlohmann_json protobuf::libprotobuf)

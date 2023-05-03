@@ -15,21 +15,13 @@
 #include <iomanip>
 #include <sstream>
 
+#include "bss.pb.h"
+
 enum class measurement_type {
     temperature = 1,
     humidity = 2,
     ambient_light = 3,
 };
-
-
-void parse_data(const char* buffer, std::int32_t& temperature, std::int32_t& humidity) {
-    
-    std::int32_t* tempPtr = reinterpret_cast<std::int32_t*>(const_cast<char*>(buffer));
-    temperature = *tempPtr;
-
-    std::int32_t* humPtr = reinterpret_cast<std::int32_t*>(const_cast<char*>(buffer + sizeof(std::int32_t)));
-    humidity = *humPtr;
-}
 
 std::string get_current_timestamp() {
     auto now = std::chrono::system_clock::now();
@@ -39,14 +31,15 @@ std::string get_current_timestamp() {
     return ss.str();
 }
 
-std::string get_json_rpc(std::int32_t node_id, measurement_type type, std::int32_t value) {
+template <class xint32>
+std::string get_json_rpc(std::uint32_t node_id, measurement_type type, xint32 value) {
     nlohmann::json j;
     nlohmann::json data = nlohmann::json::array();
 
     if (type == measurement_type::temperature)
         data.push_back({
             {"time", get_current_timestamp()},
-            {"temperature", value},
+            {"temperature", static_cast<double>(value/100.0)},
             {"quality", 100}
         });
     else if (type == measurement_type::humidity)
@@ -58,7 +51,7 @@ std::string get_json_rpc(std::int32_t node_id, measurement_type type, std::int32
     else if (type == measurement_type::ambient_light)
         data.push_back({
             {"time", get_current_timestamp()},
-            {"ambient light", value},
+            {"light", value},
             {"quality", 100}
         });
     else return nullptr;
@@ -117,20 +110,36 @@ int main() {
         buffer[num_bytes] = '\0';
         std::cout << "Received " << num_bytes << " bytes from " << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
         
-        std::cout << "Processing..." << std::endl;
-        std::int32_t temperature;
-        std::int32_t humidity;
-        parse_data(buffer, temperature, humidity);
-        std::string temperature_req = get_json_rpc(6, measurement_type::temperature, temperature); // TODO nahradit node_id
-        std::string humidity_req = get_json_rpc(6, measurement_type::humidity, humidity); // TODO nahradit node_id
-
-        std::cout << "Posting..." << std::endl;
-        post_request(temperature_req);
-        post_request(humidity_req);
-
+        std::cout << "Processing... ";
+        bss::Measurement measurement;
+        if (!measurement.ParseFromArray(buffer, num_bytes)) {
+            std::cout << "Failed." << std::endl;
+            sendto(sockfd, "ERROR", strlen("ERROR"), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
+            continue;
+        }
+        if (measurement.node_id() == 0) {
+            std::cout << "Invalid node_id." << std::endl;
+            continue;
+        }
         std::cout << "Done." << std::endl;
 
-        sendto(sockfd, "OK", strlen("OK"), 0, (struct sockaddr*)&sender_addr, sender_addrlen); // TODO definovat reply zpravy?
+        std::cout << "Posting..." << std::endl;
+        if (measurement.has_temperature()) {
+            std::cout << "Temperature:" << std::endl;
+            post_request(get_json_rpc<int32_t>(measurement.node_id(), measurement_type::temperature, measurement.temperature()));
+        }
+        if (measurement.has_humidity()) {
+            std::cout << "Humidity:" << std::endl;
+            post_request(get_json_rpc<uint32_t>(measurement.node_id(), measurement_type::humidity, measurement.humidity()));
+        }
+        if (measurement.has_ambient_light()) {
+            std::cout << "Ambient light:" << std::endl;
+            post_request(get_json_rpc<uint32_t>(measurement.node_id(), measurement_type::ambient_light, measurement.ambient_light()));
+        }
+        std::cout << "Done." << std::endl;
+
+        std::cout << "Success!" << std::endl;
+        sendto(sockfd, "OK", strlen("OK"), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
     }
 
     close(sockfd);

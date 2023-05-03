@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package bss;
+
+message Measurement {
+    uint32 node_id = 1;  // required
+    optional sint32 temperature = 2;
+    optional uint32 humidity = 3;
+    optional uint32 ambient_light = 4;
+}
