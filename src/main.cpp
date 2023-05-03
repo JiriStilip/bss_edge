@@ -95,8 +95,8 @@ int main() {
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(12345); // TODO zmenit port
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // TODO adresa rozhrani vysilane WiFi
+    addr.sin_port = htons(8266);
+    addr.sin_addr.s_addr = inet_addr("192.168.69.1");
     memset(addr.sin_zero, 0, sizeof(addr.sin_zero));
 
     if ((bind(sockfd, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
@@ -130,7 +130,7 @@ int main() {
 
         std::cout << "Done." << std::endl;
 
-        sendto(sockfd, "OK", strlen("OK"), 0, (struct sockaddr*)&sender_addr, sender_addrlen); // TODO definovat reply zpravy
+        sendto(sockfd, "OK", strlen("OK"), 0, (struct sockaddr*)&sender_addr, sender_addrlen); // TODO definovat reply zpravy?
     }
 
     close(sockfd);
