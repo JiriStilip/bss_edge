@@ -70,13 +70,13 @@ std::string get_json_rpc(std::uint32_t node_id, measurement_type type, xint32 va
     else if (type == measurement_type::humidity)
         data.push_back({
             {"time", get_current_timestamp()},
-            {"humidity", value},
+            {"humidity", static_cast<double>(value/100.0)},
             {"quality", 100}
         });
     else if (type == measurement_type::ambient_light)
         data.push_back({
             {"time", get_current_timestamp()},
-            {"light", value},
+            {"light", static_cast<double>(value/100.0)},
             {"quality", 100}
         });
     // --- MISTO PRO PRIDAVANI DALSICH MERENI ---
