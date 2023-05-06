@@ -17,6 +17,15 @@
 
 #include "bss.pb.h"
 
+#define UDP_ADDRESS "192.168.69.1"
+#define UDP_PORT 8266
+#define UDP_REPLY_OK "OK"
+#define UDP_REPLY_ERROR "ERROR"
+
+/**
+ * @brief Vycet typu mereni pro rozliseni JSON RPC requestu
+ * 
+ */
 enum class measurement_type {
     temperature = 1,
     humidity = 2,
@@ -115,8 +124,8 @@ int main() {
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(8266);
-    addr.sin_addr.s_addr = INADDR_ANY; // inet_addr("192.168.69.1"); // INADDR_ANY nevadi na testovani, ale konkretni adresa rozhrani je korektnejsi moznost
+    addr.sin_port = htons(UDP_PORT);
+    addr.sin_addr.s_addr = INADDR_ANY; // inet_addr(UDP_ADDRESS); // INADDR_ANY nevadi na testovani, ale konkretni adresa rozhrani je korektnejsi moznost
     memset(addr.sin_zero, 0, sizeof(addr.sin_zero));
 
     if ((bind(sockfd, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
@@ -143,7 +152,7 @@ int main() {
         bss::Measurement measurement;
         if (!measurement.ParseFromArray(buffer, num_bytes)) {
             std::cout << "Failed." << std::endl;
-            sendto(sockfd, "ERROR", strlen("ERROR"), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
+            sendto(sockfd, UDP_REPLY_ERROR, strlen(UDP_REPLY_ERROR), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
             continue;
         }
         if (measurement.node_id() == 0) {
@@ -170,7 +179,7 @@ int main() {
         std::cout << "Done." << std::endl;
 
         std::cout << "Success!" << std::endl;
-        sendto(sockfd, "OK", strlen("OK"), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
+        sendto(sockfd, UDP_REPLY_OK, strlen(UDP_REPLY_OK), 0, (struct sockaddr*)&sender_addr, sender_addrlen);
     }
 
     close(sockfd);
