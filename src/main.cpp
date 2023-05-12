@@ -125,7 +125,7 @@ int main() {
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(UDP_PORT);
-    addr.sin_addr.s_addr = INADDR_ANY; // inet_addr(UDP_ADDRESS); // INADDR_ANY nevadi na testovani, ale konkretni adresa rozhrani je korektnejsi moznost
+    addr.sin_addr.s_addr = inet_addr(UDP_ADDRESS); // INADDR_ANY nevadi na testovani, ale konkretni adresa rozhrani je korektnejsi moznost
     memset(addr.sin_zero, 0, sizeof(addr.sin_zero));
 
     if ((bind(sockfd, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
